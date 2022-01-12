@@ -5,15 +5,17 @@ from common import load_pickle
 
 logger = logging.getLogger(__name__)
 
+
 class Vocabulary(object):
     def __init__(self, max_size=None,
                  min_freq=None,
                  pad_token="[PAD]",
-                 unk_token = "[UNK]",
-                 cls_token = "[CLS]",
-                 sep_token = "[SEP]",
-                 mask_token = "[MASK]",
-                 add_unused = False):
+                 unk_token="[UNK]",
+                 cls_token="[CLS]",
+                 sep_token="[SEP]",
+                 mask_token="[MASK]",
+                 add_unused=False):
+
         self.max_size = max_size
         self.min_freq = min_freq
         self.cls_token = cls_token
@@ -29,8 +31,9 @@ class Vocabulary(object):
         self.reset()
 
     def reset(self):
-        ctrl_symbols = [self.pad_token,self.unk_token,self.cls_token,self.sep_token,self.mask_token]
-        for index,syb in enumerate(ctrl_symbols):
+        ctrl_symbols = [self.pad_token, self.unk_token, self.cls_token, self.sep_token, self.mask_token]
+        ctrl_symbols = [syb for syb in ctrl_symbols if syb is not None]
+        for index, syb in enumerate(ctrl_symbols):
             self.word2idx[syb] = index
 
         if self.add_unused:
@@ -38,35 +41,35 @@ class Vocabulary(object):
                 self.word2idx[f'[UNUSED{i}]'] = len(self.word2idx)
 
     def update(self, word_list):
-        '''
+        """
         依次增加序列中词在词典中的出现频率
         :param word_list:
         :return:
-        '''
+        """
         self.word_counter.update(word_list)
 
     def add(self, word):
-        '''
+        """
         增加一个新词在词典中的出现频率
         :param word:
         :return:
-        '''
+        """
         self.word_counter[word] += 1
 
     def has_word(self, word):
-        '''
+        """
         检查词是否被记录
         :param word:
         :return:
-        '''
+        """
         return word in self.word2idx
 
     def to_index(self, word):
-        '''
+        """
         将词转为数字. 若词不再词典中被记录, 将视为 unknown, 若 ``unknown=None`` , 将抛出
         :param word:
         :return:
-        '''
+        """
         if word in self.word2idx:
             return self.word2idx[word]
         if self.unk_token is not None:
@@ -112,31 +115,29 @@ class Vocabulary(object):
         self.rebuild = False
 
     def save(self, file_path):
-        '''
+        """
         保存vocab
-        :param file_name:
-        :param pickle_path:
+        :param file_path:
         :return:
-        '''
+        """
         mappings = {
             "word2idx": self.word2idx,
             'idx2word': self.idx2word
         }
         save_pickle(data=mappings, file_path=file_path)
 
-    def save_bert_vocab(self,file_path):
-        bert_vocab = [x for x,y in self.word2idx.items()]
-        with open(str(file_path),'w') as fo:
+    def save_bert_vocab(self, file_path):
+        bert_vocab = [x for x, y in self.word2idx.items()]
+        with open(str(file_path), 'w') as fo:
             for token in bert_vocab:
-                fo.write(token+"\n")
+                fo.write(token + "\n")
 
     def load_from_file(self, file_path):
-        '''
+        """
         从文件组红加载vocab
-        :param file_name:
-        :param pickle_path:
+        :param file_path:
         :return:
-        '''
+        """
         mappings = load_pickle(input_file=file_path)
         self.idx2word = mappings['idx2word']
         self.word2idx = mappings['word2idx']

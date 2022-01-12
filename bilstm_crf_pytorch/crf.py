@@ -2,21 +2,26 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
+
 def to_scalar(var):
     return var.view(-1).detach().tolist()[0]
+
 
 def argmax(vec):
     _, idx = torch.max(vec, 1)
     return to_scalar(idx)
+
 
 def log_sum_exp(vec):
     max_score = vec[0, argmax(vec)]
     max_score_broadcast = max_score.view(1, -1).expand(1, vec.size()[1])
     return max_score + torch.log(torch.sum(torch.exp(vec - max_score_broadcast)))
 
+
 def argmax_batch(vecs):
     _, idx = torch.max(vecs, 1)
     return idx
+
 
 def log_sum_exp_batch(vecs):
     maxi = torch.max(vecs, 1)[0]
@@ -24,15 +29,17 @@ def log_sum_exp_batch(vecs):
     recti_ = torch.log(torch.sum(torch.exp(vecs - maxi_bc), 1))
     return maxi + recti_
 
+
 class CRF(nn.Module):
-    def __init__(self,tagset_size,tag_dictionary,device,is_bert=None):
-        super(CRF,self).__init__()
+    def __init__(self, tagset_size, tag_dictionary, device, is_bert=None):
+        super(CRF, self).__init__()
 
         self.START_TAG = "<START>"
         self.STOP_TAG = "<STOP>"
         if is_bert:
             self.START_TAG = "[CLS]"
             self.STOP_TAG = "[SEP]"
+
         self.tag_dictionary = tag_dictionary
         self.tagset_size = tagset_size
         self.device = device
@@ -149,7 +156,7 @@ class CRF(nn.Module):
             ) + torch.sum(feats[i, r, tags[i, : lens_[i]]])
         return score
 
-    def _obtain_labels(self, feature, id2label,input_lens):
+    def _obtain_labels(self, feature, id2label, input_lens):
         tags = []
         all_tags = []
         for feats, length in zip(feature, input_lens):
@@ -158,7 +165,7 @@ class CRF(nn.Module):
             all_tags.append([[id2label[score_id] for score_id, score in enumerate(score_dist)] for score_dist in scores])
         return tags, all_tags
 
-    def calculate_loss(self, scores, tag_list,lengths):
+    def calculate_loss(self, scores, tag_list, lengths):
         return self._calculate_loss_old(scores, lengths, tag_list)
 
     def _calculate_loss_old(self, features, lengths, tags):
@@ -166,5 +173,3 @@ class CRF(nn.Module):
         gold_score = self._score_sentence(features, tags, lengths)
         score = forward_score - gold_score
         return score.mean()
-
-

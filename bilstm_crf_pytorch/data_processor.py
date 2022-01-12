@@ -1,9 +1,10 @@
 import json
 from vocabulary import Vocabulary
 
+
 class CluenerProcessor:
     """Processor for the chinese ner data set."""
-    def __init__(self,data_dir):
+    def __init__(self, data_dir):
         self.vocab = Vocabulary()
         self.data_dir = data_dir
 
@@ -18,6 +19,7 @@ class CluenerProcessor:
                     for line in fr:
                         line = json.loads(line.strip())
                         text = line['text']
+                        # 创建 char dict
                         self.vocab.update(list(text))
             self.vocab.build_vocab()
             self.vocab.save(vocab_path)
@@ -62,5 +64,3 @@ class CluenerProcessor:
                 idx += 1
                 examples.append(json_d)
         return examples
-
-

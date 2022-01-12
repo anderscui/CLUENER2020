@@ -18,11 +18,12 @@ from common import (init_logger,
                     AverageMeter,
                     seed_everything)
 
-def train(args,model,processor):
+
+def train(args, model, processor):
     train_dataset = load_and_cache_examples(args, processor, data_type='train')
     train_loader = DatasetLoader(data=train_dataset, batch_size=args.batch_size,
                                  shuffle=False, seed=args.seed, sort=True,
-                                 vocab = processor.vocab,label2id = args.label2id)
+                                 vocab=processor.vocab, label2id=args.label2id)
     parameters = [p for p in model.parameters() if p.requires_grad]
     optimizer = optim.Adam(parameters, lr=args.learning_rate)
     scheduler = ReduceLROnPlateau(optimizer, mode='max', factor=0.5, patience=3,
@@ -50,7 +51,7 @@ def train(args,model,processor):
         train_log = {'loss': train_loss.avg}
         if 'cuda' in str(args.device):
             torch.cuda.empty_cache()
-        eval_log, class_info = evaluate(args,model,processor)
+        eval_log, class_info = evaluate(args, model, processor)
         logs = dict(train_log, **eval_log)
         show_info = f'\nEpoch: {epoch} - ' + "-".join([f' {key}: {value:.4f} ' for key, value in logs.items()])
         logger.info(show_info)
@@ -71,13 +72,14 @@ def train(args,model,processor):
                 info = f"Subject: {key} - Acc: {value['acc']} - Recall: {value['recall']} - F1: {value['f1']}"
                 logger.info(info)
 
-def evaluate(args,model,processor):
-    eval_dataset = load_and_cache_examples(args,processor, data_type='dev')
+
+def evaluate(args, model, processor):
+    eval_dataset = load_and_cache_examples(args, processor, data_type='dev')
     eval_dataloader = DatasetLoader(data=eval_dataset, batch_size=args.batch_size,
-                                 shuffle=False, seed=args.seed, sort=False,
-                                 vocab=processor.vocab, label2id=args.label2id)
+                                    shuffle=False, seed=args.seed, sort=False,
+                                    vocab=processor.vocab, label2id=args.label2id)
     pbar = ProgressBar(n_total=len(eval_dataloader), desc="Evaluating")
-    metric = SeqEntityScore(args.id2label,markup=args.markup)
+    metric = SeqEntityScore(args.id2label, markup=args.markup)
     eval_loss = AverageMeter()
     model.eval()
     with torch.no_grad():
@@ -100,7 +102,8 @@ def evaluate(args,model,processor):
     result = dict(result, **eval_info)
     return result, class_info
 
-def predict(args,model,processor):
+
+def predict(args, model, processor):
     model_path = args.output_dir / 'best-model.bin'
     model = load_model(model, model_path=str(model_path))
     test_data = []
@@ -175,7 +178,8 @@ def predict(args,model,processor):
         test_submit.append(json_d)
     json_to_text(output_submit_file, test_submit)
 
-def load_and_cache_examples(args,processor, data_type='train'):
+
+def load_and_cache_examples(args, processor, data_type='train'):
     # Load data features from cache or dataset file
     cached_examples_file = args.data_dir / 'cached_crf-{}_{}_{}'.format(
         data_type,
@@ -194,6 +198,7 @@ def load_and_cache_examples(args,processor, data_type='train'):
         torch.save(examples, str(cached_examples_file))
     return examples
 
+
 def main():
     parser = argparse.ArgumentParser()
     # Required parameters
@@ -202,44 +207,59 @@ def main():
     parser.add_argument("--do_predict", default=False, action='store_true')
 
     parser.add_argument('--markup', default='bios', type=str, choices=['bios', 'bio'])
-    parser.add_argument("--arch",default='bilstm_crf',type=str)
-    parser.add_argument('--learning_rate',default=0.001,type=float)
-    parser.add_argument('--seed',default=1234,type=int)
-    parser.add_argument('--gpu',default='0',type=str)
-    parser.add_argument('--epochs',default=50,type=int)
-    parser.add_argument('--batch_size',default=32,type=int)
-    parser.add_argument('--embedding_size',default=128,type=int)
-    parser.add_argument('--hidden_size',default=384,type=int)
+    parser.add_argument("--arch", default='bilstm_crf', type=str)
+    parser.add_argument('--learning_rate', default=0.001,type=float)
+    parser.add_argument('--seed', default=1234, type=int)
+    parser.add_argument('--gpu', default='', type=str)
+    parser.add_argument('--epochs', default=10, type=int)
+    parser.add_argument('--batch_size', default=32, type=int)
+    parser.add_argument('--embedding_size', default=128, type=int)
+    parser.add_argument('--hidden_size', default=384, type=int)
     parser.add_argument("--grad_norm", default=5.0, type=float, help="Max gradient norm.")
     parser.add_argument("--task_name", type=str, default='ner')
     args = parser.parse_args()
+
     args.data_dir = config.data_dir
     if not config.output_dir.exists():
         args.output_dir.mkdir()
+
     args.output_dir = config.output_dir / '{}'.format(args.arch)
     if not args.output_dir.exists():
         args.output_dir.mkdir()
+
     init_logger(log_file=str(args.output_dir / '{}-{}.log'.format(args.arch, args.task_name)))
     seed_everything(args.seed)
-    if args.gpu!='':
+
+    if args.gpu != '':
         args.device = torch.device(f"cuda:{args.gpu}")
     else:
         args.device = torch.device("cpu")
+
+    # TODO: label2id 可使用 list 而非 dict
     args.id2label = {i: label for i, label in enumerate(config.label2id)}
     args.label2id = config.label2id
+
     processor = CluenerProcessor(data_dir=config.data_dir)
     processor.get_vocab()
-    model = NERModel(vocab_size=len(processor.vocab), embedding_size=args.embedding_size,
-                     hidden_size=args.hidden_size,device=args.device,label2id=args.label2id)
+
+    model = NERModel(vocab_size=len(processor.vocab),
+                     embedding_size=args.embedding_size,
+                     hidden_size=args.hidden_size,
+                     device=args.device,
+                     label2id=args.label2id)
+
     model.to(args.device)
     if args.do_train:
-        train(args,model,processor)
+        train(args, model, processor)
+
     if args.do_eval:
         model_path = args.output_dir / 'best-model.bin'
         model = load_model(model, model_path=str(model_path))
-        evaluate(args,model,processor)
+        evaluate(args, model, processor)
+
     if args.do_predict:
-        predict(args,model,processor)
+        predict(args, model, processor)
+
 
 if __name__ == "__main__":
     main()
