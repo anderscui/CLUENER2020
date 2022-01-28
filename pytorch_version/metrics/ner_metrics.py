@@ -1,6 +1,6 @@
 import torch
 from collections import Counter
-from processors.utils_ner import get_entities
+from pytorch_version.processors.utils_ner import get_entities
 
 class SeqEntityScore(object):
     def __init__(self, id2label,markup='bios'):
@@ -54,6 +54,7 @@ class SeqEntityScore(object):
             self.origins.extend(label_entities)
             self.founds.extend(pre_entities)
             self.rights.extend([pre_entity for pre_entity in pre_entities if pre_entity in label_entities])
+
 
 class SpanEntityScore(object):
     def __init__(self, id2label):

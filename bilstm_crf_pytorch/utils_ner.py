@@ -1,3 +1,6 @@
+# coding=utf-8
+
+
 def get_entity_bios(seq,id2label):
     """Gets entities from sequence.
     note: BIOS
@@ -82,6 +85,7 @@ def get_entity_bio(seq,id2label):
             chunk = [-1, -1, -1]
     return chunks
 
+
 def get_entities(seq,id2label,markup='bios'):
     '''
     :param seq:
@@ -94,4 +98,3 @@ def get_entities(seq,id2label,markup='bios'):
         return get_entity_bio(seq,id2label)
     else:
         return get_entity_bios(seq,id2label)
-

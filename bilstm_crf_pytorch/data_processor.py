@@ -1,11 +1,15 @@
 import json
-from vocabulary import Vocabulary
+from collections import Counter
+
+from config import train_path, dev_path, test_path
+from vocabulary import Vocabulary, Labels
 
 
 class CluenerProcessor:
     """Processor for the chinese ner data set."""
     def __init__(self, data_dir):
         self.vocab = Vocabulary()
+        self.labels = Labels()
         self.data_dir = data_dir
 
     def get_vocab(self):
@@ -13,9 +17,10 @@ class CluenerProcessor:
         if vocab_path.exists():
             self.vocab.load_from_file(str(vocab_path))
         else:
-            files = ["train.json", "dev.json", "test.json"]
+            # TODO：也读取 dev 和 test？
+            files = [train_path, dev_path, test_path]
             for file in files:
-                with open(str(self.data_dir / file), 'r') as fr:
+                with open(str(file), 'r') as fr:
                     for line in fr:
                         line = json.loads(line.strip())
                         text = line['text']
@@ -24,19 +29,30 @@ class CluenerProcessor:
             self.vocab.build_vocab()
             self.vocab.save(vocab_path)
 
+    def get_labels(self):
+        files = [train_path]
+        for file in files:
+            with open(str(file), 'r') as fr:
+                for line in fr:
+                    line = json.loads(line.strip())
+                    label = line.get('label') or {}
+                    self.labels.update(label.keys())
+        self.labels.build_label_ids('bios', add_special_label=True)
+        print('labels', self.labels.label_counter.most_common())
+
     def get_train_examples(self):
         """See base class."""
-        return self._create_examples(str(self.data_dir / "train.json"), "train")
+        return self._create_examples(str(train_path), "train")
 
     def get_dev_examples(self):
         """See base class."""
-        return self._create_examples(str(self.data_dir / "dev.json"), "dev")
+        return self._create_examples(str(dev_path), "dev")
 
     def get_test_examples(self):
         """See base class."""
-        return self._create_examples(str(self.data_dir / "test.json"), "test")
+        return self._create_examples(str(test_path), "test")
 
-    def _create_examples(self,input_path,mode):
+    def _create_examples(self, input_path, mode):
         examples = []
         with open(input_path, 'r') as f:
             idx = 0
@@ -64,3 +80,9 @@ class CluenerProcessor:
                 idx += 1
                 examples.append(json_d)
         return examples
+
+
+if __name__ == '__main__':
+    processor = CluenerProcessor('')
+    samples = processor._create_examples(dev_path, 'dev')
+    print(json.dumps(samples[:6], indent=2, ensure_ascii=False))

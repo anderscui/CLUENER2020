@@ -20,7 +20,7 @@ from common import (init_logger,
 
 
 def train(args, model, processor):
-    train_dataset = load_and_cache_examples(args, processor, data_type='train')
+    train_dataset = load_samples(args, processor, data_type='train')
     train_loader = DatasetLoader(data=train_dataset, batch_size=args.batch_size,
                                  shuffle=False, seed=args.seed, sort=True,
                                  vocab=processor.vocab, label2id=args.label2id)
@@ -74,7 +74,7 @@ def train(args, model, processor):
 
 
 def evaluate(args, model, processor):
-    eval_dataset = load_and_cache_examples(args, processor, data_type='dev')
+    eval_dataset = load_samples(args, processor, data_type='dev')
     eval_dataloader = DatasetLoader(data=eval_dataset, batch_size=args.batch_size,
                                     shuffle=False, seed=args.seed, sort=False,
                                     vocab=processor.vocab, label2id=args.label2id)
@@ -179,24 +179,24 @@ def predict(args, model, processor):
     json_to_text(output_submit_file, test_submit)
 
 
-def load_and_cache_examples(args, processor, data_type='train'):
+def load_samples(args, processor, data_type='train'):
     # Load data features from cache or dataset file
-    cached_examples_file = args.data_dir / 'cached_crf-{}_{}_{}'.format(
+    cached_samples_file = args.data_dir / 'cached_crf-{}_{}_{}'.format(
         data_type,
         args.arch,
         str(args.task_name))
-    if cached_examples_file.exists():
-        logger.info("Loading features from cached file %s", cached_examples_file)
-        examples = torch.load(cached_examples_file)
+    if cached_samples_file.exists():
+        logger.info("Loading features from cached file %s", cached_samples_file)
+        samples = torch.load(cached_samples_file)
     else:
         logger.info("Creating features from dataset file at %s", args.data_dir)
         if data_type == 'train':
-            examples = processor.get_train_examples()
+            samples = processor.get_train_examples()
         elif data_type == 'dev':
-            examples = processor.get_dev_examples()
-        logger.info("Saving features into cached file %s", cached_examples_file)
-        torch.save(examples, str(cached_examples_file))
-    return examples
+            samples = processor.get_dev_examples()
+        logger.info("Saving features into cached file %s", cached_samples_file)
+        torch.save(samples, str(cached_samples_file))
+    return samples
 
 
 def main():
@@ -204,7 +204,7 @@ def main():
     # Required parameters
     parser.add_argument("--do_train", default=False, action='store_true')
     parser.add_argument('--do_eval', default=False, action='store_true')
-    parser.add_argument("--do_predict", default=False, action='store_true')
+    parser.add_argument("--do_predict", default=True, action='store_true')
 
     parser.add_argument('--markup', default='bios', type=str, choices=['bios', 'bio'])
     parser.add_argument("--arch", default='bilstm_crf', type=str)
@@ -235,12 +235,13 @@ def main():
     else:
         args.device = torch.device("cpu")
 
-    # TODO: label2id 可使用 list 而非 dict
-    args.id2label = {i: label for i, label in enumerate(config.label2id)}
-    args.label2id = config.label2id
-
     processor = CluenerProcessor(data_dir=config.data_dir)
     processor.get_vocab()
+    processor.get_labels()
+
+    # TODO: label2id 可使用 list 而非 dict
+    args.id2label = {i: label for i, label in enumerate(processor.labels.labels)}
+    args.label2id = processor.labels.labels
 
     model = NERModel(vocab_size=len(processor.vocab),
                      embedding_size=args.embedding_size,

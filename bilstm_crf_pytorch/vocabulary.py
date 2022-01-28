@@ -6,7 +6,7 @@ from common import load_pickle
 logger = logging.getLogger(__name__)
 
 
-class Vocabulary(object):
+class Vocabulary:
     def __init__(self, max_size=None,
                  min_freq=None,
                  pad_token="[PAD]",
@@ -171,3 +171,27 @@ class Vocabulary(object):
 
     def __len__(self):
         return len(self.idx2word)
+
+
+class Labels:
+    def __init__(self):
+        self.label_counter = Counter()
+        self.labels = None
+
+    def update(self, labels):
+        self.label_counter.update(labels)
+
+    def build_label_ids(self, choices, add_special_label=True):
+        assert choices in {'bios', 'bio'}
+        prefix = 'BIS' if choices == 'bios' else 'BI'
+
+        label_names = sorted(self.label_counter)
+        labels = {'O': 0}
+        for pre in prefix:
+            for name in label_names:
+                labels[f'{pre}-{name}'] = len(labels)
+        if add_special_label:
+            for special_label in ('<START>', '<STOP>'):
+                labels[special_label] = len(labels)
+
+        self.labels = labels

@@ -1,8 +1,8 @@
 import random
 import torch
 
-class DatasetLoader(object):
-    def __init__(self, data, batch_size, shuffle, vocab,label2id,seed, sort=True):
+class DatasetLoader:
+    def __init__(self, data, batch_size, shuffle, vocab, label2id, seed, sort=True):
         self.data = data
         self.shuffle = shuffle
         self.batch_size = batch_size
@@ -15,11 +15,13 @@ class DatasetLoader(object):
     def reset(self):
         self.examples = self.preprocess(self.data)
         if self.sort:
+            # TODO: 按文本长度降序排列
             self.examples = sorted(self.examples, key=lambda x: x[2], reverse=True)
         if self.shuffle:
             indices = list(range(len(self.examples)))
             random.shuffle(indices)
             self.examples = [self.examples[i] for i in indices]
+        # TODO: 舍弃最后一个小 batch
         self.features = [self.examples[i:i + self.batch_size] for i in range(0, len(self.examples), self.batch_size)]
         print(f"{len(self.features)} batches created")
 
@@ -55,7 +57,6 @@ class DatasetLoader(object):
         return sorted_all[2:], sorted_all[1]
 
     def __len__(self):
-        # return 50
         return len(self.features)
 
     def __getitem__(self, index):

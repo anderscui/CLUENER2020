@@ -386,3 +386,6 @@ def summary(model, *inputs, batch_size=-1, show_input=True):
     print(f"Trainable params: {trainable_params:0,}")
     print(f"Non-trainable params: {(total_params - trainable_params):0,}")
     print("-----------------------------------------------------------------------")
+
+def are_equal_sets(s1: set, s2: set):
+    return (len(s1 - s2) == 0) and (len(s2 - s1) == 0)
